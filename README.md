@@ -1,5 +1,5 @@
 ## My Projects (Data Analysis)
-### The above projects are parts of my Data Analyst Nanodegree (Bertelsmann Udacity Data Science Scholarship Program), and here is a short description of each one:
+#### The above projects are parts of my Data Analyst Nanodegree (Bertelsmann Udacity Data Science Scholarship Program), and here is a short description of each one:
 
 * Explore Weather Trends:
   - In this project, I analyzed local and global temperature data and compared the temperature trends where I live to overall global           temperature trends. I used SQL to extract data from the temperatures database, created visualizations (using Excel) and prepared a         write up describing the similarities and differences between global temperature trends and temperature trends in the closest big city     to where I live.
