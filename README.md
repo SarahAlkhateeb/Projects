@@ -1,4 +1,4 @@
-# My Projects (Data Analysis)
+## My Projects (Data Analysis)
 ### The above projects are parts of my Data Analyst Nanodegree (Bertelsmann Udacity Data Science Scholarship Program), and here is a short description of each one:
 
 * Explore Weather Trends:
