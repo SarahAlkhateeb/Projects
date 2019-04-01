@@ -17,7 +17,9 @@
   - In this project, I have Created a hypothesis regarding the outcome of the Stroop Effect. Analyzed the results using descriptive           statistics and a paired sample t-test (Python, NumPy, Pandas, Matplotlib, Seaborn, SciPy)
   - Found that the Stroop Effect indeed interferes the reaction time associated with the task condition (Congruent, Incongruent)
   
-  
+* **Test A Perceptual Phenomenon:**
+  - In this project, I have Created a hypothesis regarding the outcome of the Stroop Effect. Analyzed the results using descriptive           statistics and a paired sample t-test (Python, NumPy, Pandas, Matplotlib, Seaborn, SciPy)
+  - Found that the Stroop Effect indeed interferes the reaction time associated with the task condition (Congruent, Incongruent)  
   
 
   
