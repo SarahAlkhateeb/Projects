@@ -12,4 +12,13 @@
 * **Investigate a Dataset:**
   - In this project, I conducted my own data analysis using a random dataset (data regarding 100,000 medical appointments in Brazil). I       started by taking a look at the dataset and brainstorming what questions I could answer using it. Then used pandas, NumPy and             Matplotlib to answer the questions I am most interested in, and created a report sharing the answers. This analysis highlighted           several factors, which will help in predicting if a patient will show up for his/her scheduled appointment? I went through the data       analysis process: Asking questions, Wrangling the data, Performing EDA, Drawing conclusions and Communicating the results.
   
+  
+* **Test A Perceptual Phenomenon:**
+  - In this project, I have Created a hypothesis regarding the outcome of the Stroop Effect. Analyzed the results using descriptive           statistics and a paired sample t-test (Python, NumPy, Pandas, Matplotlib, Seaborn, SciPy)
+  - Found that the Stroop Effect indeed interferes the reaction time associated with the task condition (Congruent, Incongruent)
+  
+  
+  
+
+  
  
