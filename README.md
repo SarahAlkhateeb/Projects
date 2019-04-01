@@ -23,7 +23,7 @@
   - Found that the duration of the experiment is not enough to decide whether the new page is better or not
   
   
-* **RED WINE QUALITY EXPLORATION:**
+* **Red Wine Quality Exploration:**
   - In this project, I have applied exploratory data analysis techniques to explore a dataset contains 1,599 red wines with 11 variables     on the chemical properties of the wine. Carried out Univariate, Bivariate, Multivariate Analysis and calculated correlations to         identify relationships and patterns among variables. Technologies: R, ggplot2, dplyr, knitr
   - Found that very few variables have a strong correlation even though it is not very strong. Contrary to what I thought, Density has a     weak negative correlation with the quality and have a Pearson correlation r = - 0.17   
   
