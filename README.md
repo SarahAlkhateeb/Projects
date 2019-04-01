@@ -14,12 +14,18 @@
   
   
 * **Test A Perceptual Phenomenon:**
-  - In this project, I have Created a hypothesis regarding the outcome of the Stroop Effect. Analyzed the results using descriptive           statistics and a paired sample t-test (Python, NumPy, Pandas, Matplotlib, Seaborn, SciPy)
+  - In this project, I have created a hypothesis regarding the outcome of the Stroop Effect. Analyzed the results using descriptive           statistics and a paired sample t-test (Python, NumPy, Pandas, Matplotlib, Seaborn, SciPy)
   - Found that the Stroop Effect indeed interferes the reaction time associated with the task condition (Congruent, Incongruent)
   
-* **Test A Perceptual Phenomenon:**
-  - In this project, I have Created a hypothesis regarding the outcome of the Stroop Effect. Analyzed the results using descriptive           statistics and a paired sample t-test (Python, NumPy, Pandas, Matplotlib, Seaborn, SciPy)
-  - Found that the Stroop Effect indeed interferes the reaction time associated with the task condition (Congruent, Incongruent)  
+
+* **Analyzing A/B Test results:**
+  - In this project, I have performed an A/B test for an e-commerce website to help the company understand if they should implement the     new page or keep the old page (Python, Pandas, Numpy, Random, Matplotlib, StatsModels)
+  - Found that the duration of the experiment is not enough to decide whether the new page is better or not
+  
+  
+* **RED WINE QUALITY EXPLORATION:**
+  - In this project, I have applied exploratory data analysis techniques to explore a dataset contains 1,599 red wines with 11 variables     on the chemical properties of the wine. Carried out Univariate, Bivariate, Multivariate Analysis and calculated correlations to         identify relationships and patterns among variables. Technologies: R, ggplot2, dplyr, knitr
+  - Found that very few variables have a strong correlation even though it is not very strong. Contrary to what I thought, Density has a     weak negative correlation with the quality and have a Pearson correlation r = - 0.17   
   
 
   
