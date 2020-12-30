@@ -1,5 +1,28 @@
+
+## Masters Projects
+*Some of my masters degree projects (MSc Applied Data Science)*
+
+
+**Deep Machine learning project:**
+
+We applied the You Only Look Once (YOLOv4) algorithm to weapons detection because YOLO approved to be the fastest so far and can be implemented in real-time detection. Automating weapons detection could be beneficial, especially if it were fast enough to send an alert in real-time. We focused on two categories of weapons: guns and knives. There are lots of images of guns and knives available online, and they are probably the most commonly used weapons, so they will be the most useful to detect.
+
+
+**Statistical learning for big data Final Report:**
+
+The final report included my final solution to three different Exercises:
+* Classification and variable selection
+* High-dimensional clustering
+* Improving variable selection in the Lasso
+
+
+
+
+
+
+
 ## Data Analysis Projects
-#### The above projects are parts of my Data Analyst Nanodegree (Bertelsmann Udacity Data Science Scholarship Program), and here is a short description of each one:
+#### Some of the above projects are parts of my Data Analyst Nanodegree (Bertelsmann Udacity Data Science Scholarship Program), and here is a short description of each one:
 
 * **Explore Weather Trends:**
   - In this project, I analyzed local and global temperature data and compared the temperature trends of a city to overall global             temperature trends. I used SQL to extract data from the temperatures database, created visualizations (using Excel) and prepared a         write up describing the similarities and differences between global temperature trends and temperature trends in the closest big city     to where I live.
@@ -30,19 +53,4 @@
 
 
 
-# Masters Projects
-*Some of my masters degree projects (MSc Applied Data Science)*
-
-
-**Deep Machine learning project:**
-
-We applied the You Only Look Once (YOLOv4) algorithm to weapons detection because YOLO approved to be the fastest so far and can be implemented in real-time detection. Automating weapons detection could be beneficial, especially if it were fast enough to send an alert in real-time. We focused on two categories of weapons: guns and knives. There are lots of images of guns and knives available online, and they are probably the most commonly used weapons, so they will be the most useful to detect.
-
-
-**Statistical learning for big data Final Report:**
-
-The final report included my final solution to three different Exercises:
-* Classification and variable selection
-* High-dimensional clustering
-* Improving variable selection in the Lasso
  
