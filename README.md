@@ -1,6 +1,6 @@
 
 ## Masters Projects
-*Some of my masters degree projects (MSc Applied Data Science)*
+### Some of my masters degree projects (MSc Applied Data Science)*
 
 
 **Deep Machine learning project:**
