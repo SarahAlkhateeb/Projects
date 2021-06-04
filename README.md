@@ -7,6 +7,9 @@
 
 We applied the You Only Look Once (YOLOv4) algorithm to weapons detection because YOLO approved to be the fastest so far and can be implemented in real-time detection. Automating weapons detection could be beneficial, especially if it were fast enough to send an alert in real-time. We focused on two categories of weapons: guns and knives. There are lots of images of guns and knives available online, and they are probably the most commonly used weapons, so they will be the most useful to detect.
 
+**Files:** Deep Machine Learning Project.pdf, Deep Machine Learning Poster.pdf, countOnesAndZeros.py, renameBeginning.py, Final_Project, first training.ipynb, Final_Project, second training.ipynb, testValTrain.py
+**Assignments:** IHA1.ipynb, IHA2.ipynb
+
 
 **Statistical learning for big data Final Report:**
 
@@ -14,10 +17,27 @@ The final report included my final solution to three different Exercises:
 * Classification and variable selection
 * High-dimensional clustering
 * Improving variable selection in the Lasso
+* Statistical learning for big data Final Report
 
 
 
+**Stochastic data processing and simulation:**
+*	Worked on several projects in different areas of mathematical statistics and its application such as finance and bioinformatics.
+* Each project contained a number of problems: Reliability and survival, Bayesian decision theory, Monte Carlo methods and Simulation of stochastic processes that was solved using Python, R and Matlab
+*The projects’ reports are written in LaTex
+**Assignments:** A2.pdf + A2.m, A4.pdf + A4.R, A6.pdf + A6.ipynb
 
+
+**Applied Machine Learning:**
+* Decision_Trees-1.ipynb
+* Programming_assignment_2A.ipynb
+* Programming_assignment_3A_group10.ipynb
+* Programming assignment 1B Random forests.ipynb
+
+
+**Linear Statistical Models:**
+* MiniSummary_and_Project_.pdf
+* MiniSummary_and_Project.Rmd
 
 
 
