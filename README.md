@@ -7,7 +7,16 @@
 
 We applied the You Only Look Once (YOLOv4) algorithm to weapons detection because YOLO approved to be the fastest so far and can be implemented in real-time detection. Automating weapons detection could be beneficial, especially if it were fast enough to send an alert in real-time. We focused on two categories of weapons: guns and knives. There are lots of images of guns and knives available online, and they are probably the most commonly used weapons, so they will be the most useful to detect.
 
-**Files:** Deep Machine Learning Project.pdf, Deep Machine Learning Poster.pdf, countOnesAndZeros.py, renameBeginning.py, Final_Project, first training.ipynb, Final_Project, second training.ipynb, testValTrain.py
+**Files:** 
+* Deep Machine Learning Project.pdf
+* Deep Machine Learning Poster.pdf
+* countOnesAndZeros.py
+* renameBeginning.py
+* Final_Project
+* first training.ipynb
+* Final_Project
+* second training.ipynb
+* testValTrain.py
 **Assignments:** IHA1.ipynb, IHA2.ipynb
 
 
