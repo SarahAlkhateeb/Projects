@@ -17,6 +17,7 @@ We applied the You Only Look Once (YOLOv4) algorithm to weapons detection becaus
 * Final_Project
 * second training.ipynb
 * testValTrain.py
+
 **Assignments:** IHA1.ipynb, IHA2.ipynb
 
 
