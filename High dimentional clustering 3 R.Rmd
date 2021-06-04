@@ -1,0 +1,133 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+
+```{r}
+data <- X
+dim(data)
+```
+
+```{r, echo=FALSE, results=FALSE, warning=FALSE, message=FALSE}
+library(subspace)
+library(dplyr)
+library(ggplot2)
+library(scales)
+library(rlang)
+library(GGally)
+library(SFtools)
+```
+
+
+```{r, echo=FALSE, results=FALSE, warning=FALSE, message=FALSE}
+fit_proclus <- subspace::ProClus(X, k = 3, d = 3)
+cl_data <- bind_cols(
+  as_tibble(X),
+  cluster = rep(NA_real_, dim(X)[1]))
+for(i in 1:length(fit_proclus)) {
+  cl <- fit_proclus[[i]]
+  cl_data[cl$objects, "cluster"] <- i
+}
+
+GGally::ggpairs(
+  data = cl_data,
+  mapping = aes(colour = factor(cluster, exclude = NULL)),
+  columns = 8:14,
+  upper = list(continuous = GGally::wrap("points", size = 0.025)),
+  lower = list(continuous = "blank"),
+  diag = list(continuous = GGally::wrap("densityDiag", size = 0.05)),
+  axisLabels = "none") +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 7))
+
+
+```
+
+```{r, echo=FALSE, results=FALSE, warning=FALSE, message=FALSE, options(max.print=1000000)}
+library(FeatureImpCluster)
+library(flexclust)
+
+df <- data.frame(sapply(fit_proclus, function(cl) cl$subspace))
+
+```
+
+```{r, echo=FALSE, results=FALSE, warning=FALSE, message=FALSE}
+
+res <- kcca(data,k=3)
+FeatureImp_res <- FeatureImpCluster(res,as.data.table(data))
+barplot(res)
+
+```
+
+```{r, echo=FALSE, results=FALSE, warning=FALSE, message=FALSE}
+barplot(res, data=data,FUN=function(x) apply(x,2,max), mcol = "darkred")
+
+```
+
+```{r, echo=FALSE, results=FALSE, warning=FALSE, message=FALSE}
+barchart(res, data=data,FUN=function(x) apply(x,2,max), mcol = "darkred")
+```
+```{r, echo=FALSE, results=FALSE, warning=FALSE, message=FALSE}
+
+summary(res)
+
+```
+
+
+
+```{r, echo=FALSE, results=FALSE, warning=FALSE, message=FALSE, cap='}
+n <- 5
+sv <- sample(1:1000,n)
+Imp <- data.frame(matrix(0,n,dim(data)[2]))
+count <- 1
+for (s in sv) {
+  set.seed(s)
+  res <- kcca(data,k=3)
+  FeatureImp <- FeatureImpCluster(res,as.data.table(data),sub = 1,biter = 1)
+  savedImp[count,] <- FeatureImp$featureImp[sort(names(FeatureImp$featureImp))]
+  count <- count + 1
+}
+names(savedImp) <- sort(names(FeatureImp$featureImp))
+
+boxplot(savedImp, xlab="Features", ylab="Feature Importance")
+```
+
+
+```{r,echo=FALSE, results=FALSE, warning=FALSE, message=FALSE, options(java.parameters = "-Xmx8000m")}
+fit_clique <- subspace::CLIQUE(data, xi = 40, tau = 0.6)
+cl_datac <- bind_cols(
+  as_tibble(data),
+  cluster = rep(NA_real_, dim(data)[1]))
+for(i in 1:length(fit_clique)) {
+  clc <- fit_clique[[i]]
+  cl_datac[clc$objects, "cluster"] <- i
+}
+
+
+```
+
+```{r,echo=FALSE, results=FALSE, warning=FALSE, message=FALSE}
+GGally::ggpairs(
+  data = cl_datac,
+  mapping = aes(colour = factor(cluster, exclude = NULL)),
+  columns = 8:14,
+  upper = list(continuous = GGally::wrap("points", size = 0.01)),
+  lower = list(continuous = "blank"),
+  diag = list(continuous = GGally::wrap("densityDiag", size = 0.025)),
+  axisLabels = "none") +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 7),
+    rect = element_rect(fill = "transparent"),
+    line = element_line(size = 0.1))
+```
+
+```{r, echo=FALSE, results=FALSE, warning=FALSE, message=FALSE}
+df_cl <- data.frame(sapply(fit_clique, function(clc) clc$subspace))
+
+apply(df_cl, 1, any)
+```
+
