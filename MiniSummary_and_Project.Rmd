@@ -1,0 +1,1576 @@
+---
+title: ' '
+output:
+  rmarkdown::pdf_document:
+    fig_caption: yes
+    includes:
+      in_header: header.tex
+  pdf_document: default
+---
+
+
+# University of Gothenburg
+
+# Linear Statistical Models (MSG500-MVE190)
+
+
+### Sarah Alkhateeb & Nilufar Hatamova
+
+
+
+
+\newpage
+
+```{r setup, include=FALSE,echo=FALSE }
+library(knitr)
+library(ggplot2)
+library(gridExtra)
+library(tidyr)
+library(tidyverse)
+library(stringr)
+library(reshape2)
+library(RColorBrewer)
+library(plotly)
+library(mlr)
+library("DataExplorer")
+library(arm)
+library(ggpubr)
+library(MASS)
+library(car)
+library(xtable)
+library(sjstats)
+library(leaps)
+library(AER)
+require(broom) # for tidy()
+library(papeR)
+library(agricolae)
+library("geosphere")
+library(plyr)
+library(dplyr)
+library(dummies)
+library(arm)
+library(pander)
+```
+## Mini-analysis summary
+
+
+## TV dataset
+
+
+In this minianalysis, we implemented data transformation; using the TV dataset, we examined how variables transformation may change the fit of the model. There are different types of data transformation such as natural logarithm, square root, and inverse.
+
+The TV dataset contained 40 observations with 5 different variables such as life expectancy, people per TV, people per doctor, male and female life expectancy. Our outcome (response) is *people per TV* and the independent covariate is *People per Doctors*. We fitted the model by using raw data. The fitting and residuals plots are shown below:
+
+
+## Data Transformation
+```{r echo=FALSE,fig.width=8,fig.height=3,fig.align='center', fig.cap=" Fitting and residuals for raw data" }
+#Task 1
+
+TVdata<-read.table("TV.dat",sep="\t")
+TVdat<-na.omit(TVdata)
+par(mfrow=c(1,2))
+plot(TVdat$ppD,TVdat$ppT,type='p',xlab="people per Dr",ylab="people per TV" ,col=4)
+
+title("People per TV vs People per Doctors")
+mm1<-lm(TVdat$ppT~TVdat$ppD)
+abline(mm1,col=2)
+plot(TVdat$ppD,mm1$residuals,col=2)
+title("Residuals for raw data")
+abline(0,0,col=9)
+
+```
+
+
+
+From the fitting and residuals plots (*Figure 1*) we can see that:
+
+  - The model does not describe the data well (left graph).
+  
+  - Residuals are not distributed symmetrically around 0 (right graph).
+  
+  - We can see the outliers from both fitting plot and residuals graph.
+  
+  - Based on the residuals plot we can say that there is non-constant variance. 
+
+To make the distribution more symmetric, we used some data transformations such as natural logarithm and inverse and checked basic assumptions to decide whether the least square is a sensible approach for modeling the data.
+
+```{r echo=FALSE,fig.width=8,fig.height=7, fig.align='center', fig.cap=" Fitting and residuals after data transformation" }
+par(mfrow=c(2,2))
+plot(log(TVdat$ppD),log(TVdat$ppT),xlab="log(people per Dr)",ylab="log(people per TV)",col=4)
+title("log transform")
+
+mm2<-lm(log(TVdat$ppT)~log(TVdat$ppD))
+abline(mm2,col=2)
+plot(log(TVdat$ppD),mm2$residuals,col=2)
+title("Residuals for log transform")
+abline(0,0,col=9)
+
+
+plot(1/(TVdat$ppD),1/(TVdat$ppT),xlab="1/Dr per capita",ylab="1/TV per capita",col=4)
+title("inverse transform")
+mm3<-lm(I(1/TVdat$ppT)~I(1/TVdat$ppD))
+abline(mm3,col=2)
+plot(I(1/TVdat$ppD),mm3$residuals,col=2)
+title("Residuals for inverse transform")
+abline(0,0,col=9)
+
+
+
+#plot(sqrt(TVdat$ppD),sqrt(TVdat$ppT),xlab="square root of Dr per capita",ylab="square root of TV per capita")
+#title("square root transform:  TV/capita vs Doctors/capita")
+#mm4<-lm(I(sqrt(TVdat$ppT))~I(sqrt(TVdat$ppD)))
+#abline(mm4,col=4)
+#plot(sqrt(TVdat$ppD),mm4$residuals)
+#summary(mm4)
+
+```
+ 
+*Figure 2* shows the fitting and residuals plots after using natural logarithm transformation and inverse transformation.
+After natural logarithm transformation, we can say that:
+
+  - The model still does not describe the data well.
+  
+  - The residuals are distributed almost symmetrically around zero.
+  
+  - We have almost constant variance.
+  
+  - We clearly can see the outliers from both graphs.
+  
+
+Our next data transformation is the inverse transformation. After implementing this transformation:
+
+  - The model still not sufficient to describe the data.
+  
+  - Residuals are not distributed symmetrically around zero.
+  
+  - Increasing variance (non-constant) can be seen from the residuals graph and we still have outliers.
+
+
+
+## AirBNB DataSet 
+
+### Exploring the data & fitting a model
+
+We continued our analysis using a new dataset; AirBnB prices dataset, which contained almost 49,000 observations with 16 different variables such as neighborhood, latitude, longitude, room type and price.
+
+
+
+```{r ,echo=FALSE}
+nydata <-read.csv("AirBnB_NYCity_2019.csv")
+```
+
+
+```{r ,echo=FALSE}
+cityCenter=c(-74.007819,40.718266)
+nydata$distance<-rep(0, length(nydata$longitude))
+for (i in seq(1,length(nydata$longitude))) {
+  nydata$distance[i]=distHaversine( c(nydata$longitude[i] , nydata$latitude[i]),c(-74.006,40.7128), r=6378137)
+  
+}
+```
+```{r, echo=FALSE,fig.height= 5, fig.width=5,fig.align='center', fig.cap="Room Type proportion" }
+count_room <- table(nydata$room_type)
+room_per <- (count_room / nrow(nydata) * 100)
+room_t <- unique(nydata$room_type)
+
+data_c <- data.frame(room_c = count_room, room_t = room_t , per = c(room_per))
+
+# Add label position
+data_c <- data_c %>%
+  arrange(desc(room_t)) %>%
+  mutate(lab.ypos = cumsum(per) - 0.5*per)
+
+ggplot(data_c, aes(x = 2, y = per, fill = room_t)) +
+  geom_bar(stat = "identity", color = "white") +
+  coord_polar("y", start = 0)+
+  geom_text(aes(label = paste(round(per, digits = 2), "%"), fontface=4), 
+            position = position_stack(vjust = 0.5), angle = 45, size=4) +
+  theme_void() +
+  labs(x = NULL, y = NULL, fill = NULL) +
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme_classic() +
+  theme(axis.line = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(hjust = 0.5, color = "black"),text = element_text(size=12)) + 
+  xlim(0.8, 2.5)  
+```
+
+*Figure 3* shows the room type proportion for the whole dataset. The pie chart tells us that *Private room* has the highest proportion (52%) of all types of accommodations followed by *Entire home/apt* (45.6%). *Shared room* has the smallest proportion which is 2.3% among all types of accommodations.
+
+```{r echo= FALSE, fig.align="center", }
+nydata2 <- subset(nydata, neighbourhood_group=='Manhattan',)
+
+
+# prepare the data
+count_room1 <- table(nydata2$room_type)
+room_per1 <- (count_room1 / nrow(nydata2) * 100)
+room_t1 <- unique(nydata2$room_type)
+
+data2_c <- data.frame(room1_c = count_room1, room1_t = room_t1 , per1 = c(room_per1))
+
+```
+```{r echo= FALSE,fig.width = 5,fig.height=5 ,fig.align='center',fig.cap="Room Type proportion in Manhattan"}
+
+# plot pie chart
+ggplot(data2_c, aes(x = 2, y = per1, fill = room1_t)) +
+  geom_bar(stat = "identity", color = "white") +
+  coord_polar("y", start = 0)+
+  geom_text(aes(label = paste(round(per1, digits = 1), "%") , fontface=4), 
+            position = position_stack(vjust = 0.5), angle = 45,size=4) +
+  theme_void() +
+  labs(x = NULL, y = NULL, fill = NULL) +
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme_classic() +
+  theme(axis.line = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(hjust = 0.5, color = "black"),text = element_text(size=12)) + 
+  xlim(0.8, 2.5) + scale_fill_brewer(palette="Dark2")
+
+```
+Choosing a subset from the data to analyze and see the effect of a specific covariate, we chose a subset including the *neighbourhood_group* Manhattan. 
+*Figure 4* displays that in Manhattan, the Entire home apartment has the highest proportion (60.9 %) followed by private room (36.8%), and least preferred is shared room (2.2%). However, comparing to the whole dataset, Private room has the highest proportion followed by Entire home/apt. 
+
+Adding a new covariate to the dataset: The distance. The distance was calculated from the whole dataset from the expensive area (-74.007819, 40.718266) by using longitude and latitude of accommodations, and the radius of the earth. Fitting a simple linear regression model with a response log(price) and the distance covariate.
+
+```{r echo=FALSE}
+sampledata1=nydata[sample(nrow(nydata), 1000), ]
+cityCenter=c(-74.007819,40.718266)
+nydataa1=subset(subset(sampledata1, select = c(price,longitude,latitude),price!=0 ))
+distance<-rep(0, length(nydataa1$longitude))
+for (i in seq(1,length(nydataa1$longitude))) {
+  distance[i]=distHaversine( c(nydataa1$longitude[i] , nydataa1$latitude[i]),c(-74.006,40.7128), r=6378137)
+}
+
+#plot(distance,log(nydataa1$price),ylab = "log(price)",xlab = "distance",pch=19)
+kable(prettify(summary(lm(log(nydataa1$price)~distance))), caption = " Model summary for log(price)~distance ")
+```
+
+*Table 1* shows that as x increases by 1 unit, the value of the expected y decreases by 1% (because 1 - 0.99 = 0.01).
+In our case, 5000 units increase in distance, decreases the value of the expected price by about 22%.
+
+So:
+
+  -How much does it cost to rent an entire apartment compared to a private room in Manhattan?
+  
+  -How much does it cost to rent a full apartment in the Bronx compared to Manhattan or rent a private room in the Bronx?
+  
+  -Does adding distance to the model sounds like a good idea?
+  
+
+Using the reference category and coefplot() to compare the significances of the several parameter estimates. First, comparing the rent cost between an entire apartment and a private room. 
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, }
+
+nydata3=subset(subset(nydata, select = c(price,neighbourhood_group,room_type),price!=0 ))
+#sum(is.na(nydata3))
+
+#price_room <- ddply(nydata,~room_type,summarise,mean=mean(price),sd=sd(price))
+#price_room_neighbour <-ddply(nydata, .(room_type, neighbourhood_group),summarise,mean=mean(price),sd=sd(price))
+
+
+nydata3 <- cbind(nydata3, dummies::dummy(nydata3$room_type, sep = "/"))
+nydata3 <- cbind(nydata3, dummies::dummy(nydata3$neighbourhood_group, sep = "/"))
+
+
+```
+```{r echo=FALSE, warning=FALSE, message=FALSE,fig.width=8,fig.align="center",fig.cap="Regression estimates for room types"}
+mm<-lm(price ~ room_type ,data=nydata3)
+coefplot(mm,cex.var=0.86, cex.pts=1, col.pts=1, pch.pts=20)
+
+
+```
+(*Figure 5*), we can clearly see that the shared room has the least price among them all, and their average price is smaller than the private room. We also can say that the cost for private and shared rooms are significantly lower than the cost for an entire home/apt where the entire home/apt is the reference point.
+
+For every 1 unit increase in private room price, we expect a 122 unit decrease in the entire home/apt price holding all other variables constant.
+
+Next, calculating the variability of a private room and a shared room. 
+
+The formula for variability is: $\beta_j \pm SE(\beta_j)$
+
+For a shared room, the variability is (-148.64, -134.7). For a private room, the variability is (-124.14, -119.9)
+
+## Regression estimates
+  
+```{r echo=FALSE, warning=FALSE, message=FALSE,fig.width=8,fig.align="center",fig.cap="Regression estimates for room types and neighbourhood groups"}
+mm1<-lm(price ~ room_type*neighbourhood_group,data=nydata3)
+coefplot(mm1, cex.var=0.5, cex.pts=1, col.pts=1, pch.pts=20)
+```
+ Compared prices for different room types (private, entire apartment, shared room) for neighborhood groups (*Figure 6*). The reference point is the entire apartment in Bronx. 
+ 
+  - Entire home/apt in Manhattan is more expensive than a private room in Manhattan.
+  
+  - Entire home/apt in Manhattan is more expensive than the entire home/apt in Bronx.
+  
+  - A private room in Manhattan is more expensive than a private room in Bronx.
+  
+  
+The rent prices for the entire apartment in Manhattan, private room in Manhattan and private room in Bronx based on model coefficients.
+$\beta_0$= 127.51 is entire home/apt in Bronx (reference point)
+
+$\beta_1$ is entire home/apt in Manhattan:   $\beta_0 +   \beta_1=249.24$
+
+$\beta_2$ is private room in Manhattan:  $\beta_0 +   \beta_2=116.78$
+
+$\beta_3$ is private room in Bronx:  $\beta_0 +   \beta_3=66.79$
+
+Our next question is will adding distance to the model sounds like a good idea or not? 
+  
+We selected *neighbourhood_group*, *room_type*, *price*, *distance* as a subset of the full dataset where the price is between 0.1 and 0.9 quantiles.
+  
+```{r , echo=FALSE}
+nydata4=subset(subset(nydata, select = c(price,neighbourhood_group,room_type,distance),price!=0 ))
+nydata4<-subset( nydata4, price<quantile(price, 0.9) & price > quantile(price, 0.1))
+#sum(is.na(nydata4))
+```
+
+```{r echo=FALSE,include=FALSE, warning=FALSE, message=FALSE}
+nydata4 <- cbind(nydata4, dummies::dummy(nydata4$room_type, sep = "/"),dummies::dummy(nydata4$neighbourhood_group,sep = "/"))
+mm2 <- lm(log(nydata4$price) ~ nydata4$room_type+ nydata4$neighbourhood_group)
+summary(mm2)
+
+```
+
+```{r echo=FALSE,include=FALSE, warning=FALSE, message=FALSE}
+mm3 <- lm(log(nydata4$price) ~ nydata4$room_type+ nydata4$neighbourhood_group+nydata4$distance)
+summary(mm3)
+```
+
+
+```{r echo=FALSE}
+#anova(mm2,mm3)$"Pr(>F)"
+
+kable( anova(mm2,mm3), caption = "Anova Test")
+
+```
+
+
+First, we fitted the model by using two variables, *room_type* and *neighbourhood_group*. Then we added the *distance* to our model. We performed the partial F-test test to compare our models. 
+  
+  -Null Hypothesis: Full model and Reduced model do not significantly differ.
+  
+  -Alternative Hypothesis: Full model is significantly better than the reduced model.
+  
+The result of the ANOVA test as in *Table 2*. Because the p-value- Pr(>F) is extremely small (< 2.2e-16) we reject the null hypothesis and we can say that the Full model (with distance) is better than the reduced model.
+
+*NOTE:* In the table p value- Pr(>F) seems equal to 0 because it is too small.
+
+The actual  Pr(>F) is  (< 2.2e-16) 
+
+## Diagnostic plot
+
+```{r ,warning=FALSE,echo=FALSE , fig.cap=" Diagnostic plots " ,fig.height=5}
+par(mfrow=c(2,2))
+plot(mm3)
+```
+
+The diagnostic plot is a tool to help to fix problems in our data using *neighbourhood_group*, *room_type*, and  *distance* (Figure 7).
+
+The first plot is Residuals vs fitted: From this plot, we can say that there are no patterns and residuals are distributed around zero, but we can see outliers clearly.
+
+The second plot is Normal Q-Q: From this plot, we can say that there is a straight line, which means residuals are almost normally distributed.
+
+The third plot is Scale-location: This is scaled residuals against fitted values. Residuals are distributed around zero, but we can see outliers from this plot also. 
+
+The Forth plot is Residuals vs Leverage: From this plot, we can diagnose outliers. Compared to previous plots this plot helps more to identify the outliers.
+
+
+ 
+## Training and test data
+```{r message=FALSE, warning=FALSE,echo=FALSE, fig.width=10, fig.cap="MSE and pMSE curves"}
+nydata5 <- subset(nydata, select = -c(id, host_id, name, host_name, last_review))
+nydata5$price[which(nydata5$price ==0)] = NA 
+nydata5<-na.omit(nydata5)
+#install.packages("dummies")
+#install.packages("mlr")
+#install.packages("tidyr")
+#install.packages("plyr")
+library(dummies)
+library(mlr)
+library(tidyr)
+library(plyr)
+library(dplyr)
+#install.packages("fastDummies")
+library(fastDummies)
+#nydata5 <- cbind(nydata5, dummy(nydata5$room_type, sep = "/"))
+nydata5$room_type <- factor(nydata5$room_type,levels = c("Entire home/apt","Private room","Shared room"), labels = c("1", "2", "3"))
+#nydata5 <- fastDummies::dummy_cols(nydata5, select_columns = "room_type")
+#nydata5 <- fastDummies::dummy_cols(nydata5, remove_first_dummy = TRUE)
+#knitr::kable(nydata5)
+attach(nydata5)
+
+
+
+nydata6 <- nydata5[,c(3:11)]
+m <- lm(log(price)~latitude+ longitude +minimum_nights+ number_of_reviews+ reviews_per_month+ calculated_host_listings_count+ availability_365+ room_type ,x=T,data=nydata6)
+dm <- m$x  # extract the design matrix
+dm <- dm[,-c(1)] # remove the intercept
+
+# form training and test data
+set.seed(123)
+frac <- 0.8 # training is 80% the whole dataset
+trainindeces <- sample(seq(1,dim(dm)[1]),round(dim(dm)[1]*frac))
+xx <- as.matrix(dm[trainindeces,])
+yy <- log(price[trainindeces])
+xxt <- as.matrix(dm[-trainindeces,])
+yyt <- log(price[-trainindeces])
+
+#install.packages("leaps")
+library(leaps)
+
+
+# force the dummy levels
+m1<-regsubsets(xx,yy,int=T,nbest=1000,nvmax=dim(dm)[2],method = c("ex"),really.big = T,force.in = c(8,9))
+cleaps<-summary(m1,matrix=T)
+
+#dim(cleaps$which)
+#reorder the columns of xx and xxt 
+col.order <- c(colnames(cleaps$which))
+xx <- xx[,col.order[-1]]   # now the order of columns in xx is consistent with the order in cleaps$which
+xxt <- xxt[,col.order[-1]] 
+##########
+tm<-apply(cleaps$which,1,sum) ## size of each model in the matrix
+Mses<-cleaps$rss/length(yy) ## corresponding MSEs
+
+######
+
+
+tmin<-min(tm)
+tmax<-max(tm)
+tsec<-seq(tmin,tmax)
+msevec<-rep(0,length(tsec)) #empty vector to store best model for each size
+for (tk in 1:length(tsec)) {
+  msevec[tk]<-min(Mses[tm==tsec[tk]])} ## the best model for each size
+
+#######
+# Just plotting the best model of each size
+par(mfrow=c(1,2))
+plot(tsec,msevec,xlab="number of parameters",ylab="MSE",main="MSE for best model of each size",type='b',col=2,lwd=2)
+######
+pmses<-rep(0,dim(cleaps$which)[1])
+for (jj in (1:dim(cleaps$which)[1])) {
+  # here we fit training data
+  mmr<-lm(yy~xx[,cleaps$which[jj,-1]==T]) # Training covariates
+  # (i) obtain the design matrix for the given model
+  # by selecting "active variables" in TEST data
+  design <- xxt[,cleaps$which[jj,-1]==T] # Testing covariates
+  # (ii) add a column of ones for the intercept
+  design <- cbind(rep(1,dim(xxt)[1]),design)
+  # predict the outcome of the new data from testing covariates
+  #yhat <- predict(mmr, as.data.frame(x))
+  ###
+  PEcp<-sum((yyt-design%*%mmr$coef)^2)/length(yyt)#%*% is matrix multiplication
+  # the above is the pMSE for the current model.
+  # let's store it in a vector
+  pmses[jj]<-PEcp}
+
+######
+#nullpmse<-sum((yyt-mean(yy))^2)/length(yyt)
+#pmses<-c(nullpmse,pmses)
+####
+#best prediction model of each size
+pmsevec<-rep(0,length(tsec))
+for (tk in 1:length(tsec)) {
+  pmsevec[tk]<-min(pmses[tm==tsec[tk]])}
+plot(tsec,pmsevec,xlab="number of parameters",ylab="pMSE",main="prediction MSE", type="b",lwd=2,col=4)
+#####
+ptmin<-which.min(pmses)
+ModMat<-rbind(c("TRUE",rep("FALSE",dim(cleaps$which)[2]-1)),cleaps$which)
+# this is the best model for prediction (on THIS test data)
+pmod<-ModMat[ptmin,] 
+winsize<-sum(pmod==T)
+# best training model of the same size and pmod. 
+mtmin<-which.min(Mses[tm==sum(pmod==T)])
+mod<-(cleaps$which[tm==sum(pmod==T),])[mtmin,] 
+```
+
+To select the best subset we used regsubsets() which choose best with the minimum residual sum of squares (RSS). We fitted all models to the training data and collected the mean squared error- MSE of these models fits. Next, we applied the fitted models to testing data for checking the model ability to predict and collected the predicted mean squared error- pMSE for these models fits.
+Our first model contained the response (price), 7 numerical variables and 1 categorical variable (room type) and data used 80% as a training set and 20% as a test set.
+
+We checked the best model for MSE and prediction MSE (*Figure 8*). Both curves suggest models with 7 parameters. But, we noticed the different choice of parameters for training MSE and prediction MSE.
+We didn't choose any best model from this result. Instead, we further experimented with using different models.
+
+
+```{r echo=FALSE, include=FALSE}
+nydata5$neighbourhood_group<- factor(nydata5$neighbourhood_group,levels =c("Bronx", "Brooklyn", "Manhattan", "Queens", "Staten Island") , labels = c("1","2","3","4","5"))
+
+mmodel <- lm(log(price)~ minimum_nights+ number_of_reviews+ reviews_per_month+ calculated_host_listings_count+ availability_365+ room_type+neighbourhood_group ,x=T,data=nydata5)
+
+```
+
+
+
+```{r echo=FALSE, include=FALSE}
+dm1 <- mmodel$x  # extract the design matrix
+dm1 <- dm1[,-c(1)] # remove the intercept
+
+# form training and test data
+set.seed(123)
+frac <- 0.7 # training is 80% the whole dataset
+trainindeces <- sample(seq(1,dim(dm1)[1]),round(dim(dm1)[1]*frac))
+xxx <- as.matrix(dm1[trainindeces,])
+yyy <- log(price[trainindeces])
+xxxt <- as.matrix(dm1[-trainindeces,])
+yyyt <- log(price[-trainindeces])
+
+#install.packages("leaps")
+library(leaps)
+```
+
+
+```{r echo=FALSE, fig.cap="MSE and pMSE curves", fig.width=10}
+# force the dummy levels
+m1<-regsubsets(xxx,yyy,int=T,nbest=1000,nvmax=dim(dm1)[2],method = c("ex"),really.big = T,force.in = c(6,7,8,9,10,11))
+cleaps<-summary(m1,matrix=T)
+
+#dim(cleaps$which)
+#reorder the columns of xx and xxt 
+col.order <- c(colnames(cleaps$which))
+xxx <- xxx[,col.order[-1]]   # now the order of columns in xx is consistent with the order in cleaps$which
+xxxt <- xxxt[,col.order[-1]] 
+##########
+tm<-apply(cleaps$which,1,sum) ## size of each model in the matrix
+Mses<-cleaps$rss/length(yyy) ## corresponding MSEs
+
+######
+
+
+tmin<-min(tm)
+tmax<-max(tm)
+tsec<-seq(tmin,tmax)
+msevec<-rep(0,length(tsec)) #empty vector to store best model for each size
+for (tk in 1:length(tsec)) {
+  msevec[tk]<-min(Mses[tm==tsec[tk]])} ## the best model for each size
+
+#######
+# Just plotting the best model of each size
+par(mfrow=c(1,2))
+plot(tsec,msevec,xlab="number of parameters",ylab="MSE",main="MSE for best model of each size",type='b',col=2,lwd=2)
+######
+pmses<-rep(0,dim(cleaps$which)[1])
+for (jj in (1:dim(cleaps$which)[1])) {
+  # here we fit training data
+  mmr<-lm(yyy~xxx[,cleaps$which[jj,-1]==T]) # Training covariates
+  # (i) obtain the design matrix for the given model
+  # by selecting "active variables" in TEST data
+  design <- xxxt[,cleaps$which[jj,-1]==T] # Testing covariates
+  # (ii) add a column of ones for the intercept
+  design <- cbind(rep(1,dim(xxxt)[1]),design)
+  # predict the outcome of the new data from testing covariates
+  #yhat <- predict(mmr, as.data.frame(x))
+  ###
+  PEcp<-sum((yyyt-design%*%mmr$coef)^2)/length(yyyt)#%*% is matrix multiplication
+  # the above is the pMSE for the current model.
+  # let's store it in a vector
+  pmses[jj]<-PEcp}
+
+
+
+pmsevec<-rep(0,length(tsec))
+for (tk in 1:length(tsec)) {
+  pmsevec[tk]<-min(pmses[tm==tsec[tk]])}
+plot(tsec,pmsevec,xlab="number of parameters",ylab="pMSE",main="prediction MSE", type="b",lwd=2,col=4)
+#####
+ptmin<-which.min(pmses)
+ModMat<-rbind(c("TRUE",rep("FALSE",dim(cleaps$which)[2]-1)),cleaps$which)
+# this is the best model for prediction (on THIS test data)
+pmod<-ModMat[ptmin,] 
+winsize<-sum(pmod==T)
+# best training model of the same size and pmod. 
+mtmin<-which.min(Mses[tm==sum(pmod==T)])
+mod<-(cleaps$which[tm==sum(pmod==T),])[mtmin,] 
+```
+
+
+In One of the models, we used two categorical variables - *neighbourhood_group* and *room_type* and 5 most important numerical variables: *minimum_nights*, *number_of_reviews*, *reviews_per_month*, *calculated_host_listings_count*, *availability_365*. We changed the fraction of training and test sets to 70% and 30%.
+
+*Figure 9* shows the MSE curve and pMSE curve for the best model of each size. We compared the best models that MSE and predicted MSE suggested. In this case, MSE suggests the model with 11 parameters, pMSE suggests the model with 10 parameters.
+We chose the model with 10 parameters which have the smallest pMSE equals 0.2303505 and this model is better also for model complexity.
+We changed the fractions to 50-50, 60-40 and checked the min pMSE. In all cases, there is no big difference between pMSE-s of best models. We decided to use the 70-30 fraction. 
+ 
+
+```{r echo=FALSE, include=FALSE}
+ptmin<-which.min(pmses)
+ModMat<-rbind(c("TRUE",rep("FALSE",dim(cleaps$which)[2]-1)),cleaps$which)
+# this is the best model for prediction (on THIS test data)
+ModMat[ptmin,] 
+
+```
+ 
+## Stepwise backward selection
+  We performed the stepwise backward selection for the same full model (the model which has both *neighbourhood_group* and *room_type* ). We used different model selection measures; Bayesian information criterion (BIC) and Akaike information criterion (AIC). We got the same results from stepwise with AIC and stepwise with BIC selection which is not the same with pMSE selection result.
+
+```{r echo=FALSE, include=FALSE}
+
+step_model<-step(mmodel, direction = "backward", trace = 'F')
+pmse<-lm(log(price)~ number_of_reviews+ reviews_per_month+ room_type+neighbourhood_group ,x=T,data=nydata5)
+```
+
+```{r echo=FALSE, include=FALSE}
+n<-length(nydata5[,1])
+step(mmodel, direction = "backward", k=log(n),trace = 'F')
+```
+
+```{r echo=FALSE}
+result<-data.frame( " "= c("pMSE Result","Stepwise Result"), "Residual standard error "= c(0.4787,0.4701), "R-squared" =c(0.4798, 0.4983),"Adjusted R-squared"= c(0.4797,0.4982))
+kable(result, col.names = c(" ","Residual standard error","R-squared","Adjusted R-squared"), caption = "Compare models")
+```
+
+
+We had two different models-stepwise selection results and pMSE selection model. We compared residual standard error, r-squared and adjusted r-squared for them (*Table 3*). Because stepwise selection result has smaller residual standard error, higher r-squared and adjusted r-squared, we chose stepwise selection result-  the model with *minimum_nights* ,*number_of_reviews*, *availability_365*, *room_type*, *neighbourhood_group*.
+
+
+## Conclusion
+
+During the mini analysis, we learned about different data transformations, when data transformation is needed and how they affect the fitting model, fitted models, and interpretation of the slope coefficients. We practiced with numerical and categorical variables and use different model selection methods. We also discovered how to validate the fitting model.
+
+The Tv dataset was small and we thought that with more data or information we could have more interesting results. Airbnb dataset was a nice challenge. The data contained several categorical variables that needed some special tools and careful interpretation. 
+
+Starting any analysis could be challenging and confusing but, learning more about the variables and different tools that we can use for different types of data and situations make the process more interesting. In addition, putting a plan and staring by asking several questions about the data is an essential part to start an effective analysis where the goal will be addressing these questions and get to the optimal results.
+
+Take-home message: Do not be afraid to explore and try new and different things with your data. One question will lead to more exciting questions that will teach you new things all the way.
+
+\newpage
+
+## Project
+
+## Introduction
+
+  This project will contain two parts. 
+  
+### Part 1 
+
+  The first part of the project explores a dataset contains 205 cars that were on the market in the 80’s with 26 different characteristics (Car Name, Fuel type, Horsepower, …..) of each car.
+  
+This analysis tries to answer some questions related to car price:
+
+1.	What factors on which the pricing of cars depends. 
+
+2.	Which variables are significant in predicting the price of a car?
+
+3.	How well these variables/chosen model describe the price of a car?
+
+In this analysis, we modeled the cars prices with different combinations of the available independent variables and tried to show how the prices vary with the independent variables. Our goal was to find a model that is simple and safe to make price prediction as well as easy to interpret.
+
+Different methods were introduced in this analysis such as the backwards step algorithm to reduce our decided full model, training and testing data approach (80-20%), Cross validation and LOOCV.
+
+
+## Data preparation
+
+  We checked our dataset for prices equals zero or NAs (missing data). In our dataset, we do not have any missing data or zero prices. Because of the wide range of CarName levels (147 levels), we extracted company names from the Car name variable, and created a new variable CarCompany. We checked also for spelling errors, found some errors in CarCompany, and corrected them. We also removed Car_id and CarName from our dataset. Some of the variables were transformed using natural log transform to display more symmetric distributions and move big data points closer together and spread out the smaller ones. 
+  
+```{r ,echo=FALSE,include=FALSE}
+#reading data
+car_data <-read.csv("CarPrice.csv")
+#Data processing
+#Removing rows with price=0
+car_data<-subset(car_data, car_data$price!=0)
+sum(is.na(car_data))
+```
+
+
+```{r ,echo=FALSE,include=FALSE}
+# Seperate CarCompany from CarName
+car_data$CarCompany<-str_split_fixed(car_data$CarName, " ", 2)[,1]
+
+#cheking and correcting  misspelled values
+unique(car_data$CarCompany)
+car_data$CarCompany=str_replace(car_data$CarCompany,"alfa-romero","alfa-romeo")
+car_data$CarCompany=str_replace(car_data$CarCompany,"porcshce","porsche")
+car_data$CarCompany=str_replace(car_data$CarCompany,"maxda","mazda")
+car_data$CarCompany=str_replace(car_data$CarCompany,"toyouta","toyota")
+car_data$CarCompany=str_replace(car_data$CarCompany,"vokswagen","volkswagen")
+car_data$CarCompany=str_replace(car_data$CarCompany,"vw","volkswagen")
+car_data$CarCompany=str_replace(car_data$CarCompany,"Nissan","nissan")
+
+unique(car_data$CarCompany)  #Levels: "alfa-romeo"  "audi" "bmw"  "chevrolet" "dodge" "honda" "isuzu" "jaguar" "mazda" "buick" "mercury" "mitsubishi" "nissan" "peugeot" "plymouth" "porsche" "renault" "saab" "subaru" "toyota" "volkswagen" "volvo" 
+unique(car_data$fueltype) # Levels: gas and diesel
+unique(car_data$aspiration) # Levels: std turbo
+unique(car_data$doornumber) # Levels: four two
+unique(car_data$carbody) #Levels: convertible hardtop hatchback sedan wagon
+unique(car_data$drivewheel) #Levels: 4wd fwd rwd
+unique(car_data$enginelocation) #Levels: front rear
+unique(car_data$enginetype) # Levels: dohc dohcv l ohc ohcf ohcv rotor
+unique(car_data$cylindernumber) #Levels: eight five four six three twelve two
+unique(car_data$fuelsystem) #Levels: 1bbl 2bbl 4bbl idi mfi mpfi spdi spfi
+
+
+
+
+
+#Removing unuseful covariates
+unused <- c(grep("car_ID", colnames(car_data)),
+            grep("CarName", colnames(car_data)))
+
+car_data<-car_data[,-unused]
+
+
+```
+
+
+
+
+## Exploring the Data
+#### Car Prices
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,fig.height=3}
+#descriptive statistics of price
+kable(as.data.frame(as.matrix(summary(car_data$price))), col.names = "Price" ,caption = " Descriptive statistics of price" )
+```
+
+  
+```{r echo=FALSE, fig.cap="Car price boxplot (US dollar) ", fig.height=4,fig.align="center"}
+#price boxplot
+boxplot(car_data$price,
+main = " ",
+col = "pink",
+border = "brown",
+horizontal = TRUE,
+xlab = " ")
+```
+
+
+
+  The boxplot (*Figure 10*) and *Table 4* show that car prices lie between $7800 and $16500 with the majority of car prices are less than \$18000. The average car prices are approximately \$13000. There are a few large data points above the maximum with a maximum price reaches \$45400.
+  
+  These outliers make the price distribution right-skewed. Log transformation will be implemented to make the distribution more symmetric.
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+#aggregate(car_data[, 24], list(car_data$enginetype), median)
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,fig.height=3,fig.cap="Price by Engine type",fig.align="center"}
+#plot violin with boxplot
+p <- ggplot(car_data, aes(x=enginetype, y=log(price), fill = enginetype)) + geom_violin() 
+
+# violin plot with median and quartile
+p + geom_boxplot(width=0.2, fill="white") 
+```
+
+  
+  Violin and box plot (*Figure 11*) show a couple of things about the distribution of prices.
+
+First, we can see that 'ohcv' engine has the highest range of prices with approximately \$19000 (as the median), followed by 'dohc' and 'l' with approximately \$16000. 'dohcv' engine has one data point with the highest price = \$31400, 'ohc' and 'ohcf' is the cheapest among them all. 
+
+*Figure 11* also shows the distribution of engine type’s prices. Both 'ohc' and 'ohcf' has a right-skewed distribution with high price outliers while 'l' has a left tail with less prices. The 'rotor' engine prices are concentrated around the median $12745. 'ohcv' displays a uniform distribution.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+#aggregate(car_data[, 24], list(car_data$CarCompany), mean)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,fig.cap="Car Company Prices",fig.align="center" ,fig.height=3}
+##plot categorical covariates
+
+ggplot(car_data, aes(x=CarCompany, y=price)) + geom_bar( fill = "#56B4E9", stat = "summary", fun.y = "mean") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+
+```
+
+  From *Figure 12* we can see the average price of cars for each company, with Toyota has average price = \$9900, and Mercury has average price = \$16500. The company with the highest average price is Jaguar with \$34000, and the least average price is Chevrolet with \$6000.
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+#aggregate(car_data[, 24], list(car_data$carbody), max)
+#aggregate(car_data[, 24], list(car_data$carbody, car_data$fueltype), max)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,fig.cap="Prices for carbody per fuel type ",fig.align="center",  fig.height=2.7}
+#plot carbody, fuel type and prices 
+ggplot(car_data, aes(fueltype, price, fill = carbody)) + 
+  geom_bar(stat="identity", position = "dodge") + 
+  scale_fill_brewer(palette = "Set2")
+```
+
+ *Figure 13* shows that with the use of gas, hardtop carbody has the highest price = \$45400, followed by sedan with price = \$41315, while wagon has the lowest price among them with price = \$28248.
+
+  For diesel fuel, sedan has the highest prices = \$31600 followed by wagon with price = \$28248, and hatchback has the lowest price = \$7788 in this category.
+  We can see that the price for gas fueltype is more expensive than diesel fueltype for all carbodies.
+  
+## Interaction between horsepower and fuel type
+```{r echo=FALSE, message=FALSE, warning=FALSE,fig.cap="Interaction between horsepower and fuel type ",fig.align="center",  fig.height=4, fig.width=6 }
+
+#plot  that data for front engine location
+plot(car_data$horsepower[car_data$fueltype =='gas'], log(car_data$price[car_data$fueltype=='gas']), col='blue', xlab = 'Horsepower', ylab = 'Price', main = '')
+
+#add the points for rear engine location
+points(car_data$horsepower[car_data$fueltype=='diesel'],log(car_data$price[car_data$fueltype=='diesel']), col='red', pch=16)
+#add legend
+legend(250,9,legend=c('Gas','Diesel'), col=c('blue','red'), pch=c(1,16), bty='n')
+#add reg line for gas
+abline(a=8.15, b= 0.011, col='blue', lwd=3)
+#add reg line for diesel
+abline(a=8.62, b= 0.011, col='red', lwd=3)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#mc <- lm(log(price)~horsepower+fueltype, data=car_data)
+#summary(mc)
+```
+
+ *Figure 14* says that horsepower has an effect on the price, as horsepower increases by 1 unit we expect the average price to increase by 0.011 (horsepower coefficient) and the increase assumed to be the same for gas & diesel (the two lines having the same slope)
+In addition, gas has an effect on the price, for gas, the average price decreased by 0.45 (fuletype coefficient), this effect assumed to be the same for all horsepowers.
+The effect of horsepower is independent of gas and the effect of gas is independent of horsepower (parallel lines), which means there is no interaction between fueltype and horsepower
+
+## ANOVA for categorical variables
+Null hypothesis: the mean price is the same for all groups (in a specific covariate)
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+
+anova1 <- aov(log(car_data$price) ~ car_data$enginetype , data=car_data)
+summary(anova1)
+```
+
+ Using aov() with price and enginetype, we had a p-value that is significant (<0.05) so we reject the null hypothesis:the mean price is the same in all enginetype levels.
+To check which enginetype may differ from the others we used TukeyHSD test to see all comparisons.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE, fig.cap=" "}
+TukeyHSD(anova1, ordered = TRUE)
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.cap=" Differences in mean levels of enginetype" }
+#plot to visualize the differences 
+plot(TukeyHSD(anova1), las=1)
+```
+
+
+  Returned overall 95% confidence intervals for the difference in means of all possible pairs for the enginetype covariate.
+From TukeyHSD() we got that (ohc-dohc & ohcv-ohc & ohcv-ohcf) are significant, which means that the means of ohc and dohc are significantly different (same for ohcv-ohc & ohcv-ohcf). The other group means do not differ (these groups contain 0 in their confidence intervals and thus, have no significant difference). From *Figure 15*, the levels with different means do not contain zero in their intervals
+
+## Correlation and Multicollinearity
+
+We used log transformation for price, horsepower, enginesize, citympg, highwaympg to deal with the problem of non-constant error scatter.
+
+*carwidth , carlength, curbweight ,enginesize ,horsepower seems to have a strong positive correlation with price (r > 0.6)
+, carheight does not show any significant pattern with price.
+*citympg and highwaympg seem to have a significant negative correlation with price (r = -0.7)
+
+ 
+```{r,echo=FALSE}
+# using numerical Variables
+categ<- c(grep("fueltype", colnames(car_data)),
+          grep("aspiration", colnames(car_data)),
+          grep("doornumber", colnames(car_data)),
+          grep("carbody", colnames(car_data)),
+          grep("drivewheel", colnames(car_data)),
+          grep("enginelocation", colnames(car_data)),
+          grep("enginetype", colnames(car_data)),
+          grep("cylindernumber", colnames(car_data)),
+          grep("fuelsystem", colnames(car_data)),
+          grep("symboling", colnames(car_data)),
+          grep("CarCompany",colnames(car_data)))
+          
+car_data_num<-car_data[,-categ]
+
+```
+ 
+
+```{r pressure, echo=FALSE, fig.cap="A correlation heatmap for numerical categories", fig.align="center"}
+#checking correlation between numerical covariates.
+plot_correlation(car_data_num,)
+```
+ 
+  The correlation plot (*Figure 16*) shows that we have correlations between predictor variables. curbweight and highwaympg have a strong negative correlation = -0.8, and highwaympg have a strong positive correlation with citympg = 0.97.
+  
+  While checking the correlation between numerical covariates, we saw that some variables are highly corellated. We checked the multicollinearity between variables by using Eigensystem analysis and VIF().
+  
+### Eigensystem analysis 
+
+  Eigensystem analysis checks how each variable correlate with all other variables not just pairwise. The Eigen values for each predictor values vary in magnitude from 6.7 (large) to 0.02 (small) which means we have much multicollinearity between predictor variables.
+  
+```{r echo=FALSE}
+car_data_pred <- subset(car_data, select = -c( symboling, fueltype, aspiration, doornumber, carbody, drivewheel, enginelocation, enginetype, cylindernumber, fuelsystem, CarCompany, price))
+#using Eigensystem analysis to check how each variable correlate with all the other variables not just pairwise
+
+#condition number: ratio of max to min Eigen values of the correlation matric, we can use kappa(cor(cardata_pred)) function to have the condition number
+
+#eigen(cor(car_data_pred))$values # return eigen values for each predictor
+
+max_eigen_value <- max(eigen(cor(car_data_pred))$values)
+min_eigen_value <- min(eigen(cor(car_data_pred))$values)
+
+Condition_number <- max(eigen(cor(car_data_pred))$values) / min(eigen(cor(car_data_pred))$values)
+
+eigen_values <- cbind(max_eigen_value, min_eigen_value, Condition_number)
+kable(eigen_values, col.names = c('Max', 'Min', 'Condition number'),caption = "Eigensystem analysis")
+```
+ 
+  
+  We quantified the range of Eigen values using the condition number which is the ratio of max and min Eigen values. From *Table 5* we can see that the condition number = 339.932. The rule of thumb is that if the value is on the order of 100 or more then there is significant multicollinearity between covariates. This means we have a multicollinearity problem in the dataset.
+
+### Variance Inflation Factor (VIF) 
+
+  We also used VIF for identifying multicollinearity, which computes the extent of correlation between the predictors in a model.
+  We fitted a model with all numerical variables and checked for multicollinearity between them using VIF().
+  After performing a linear regression, we looked for the inflation of the increase in the variance for a particular variable that comes about because of the correlation of that variable with the other predictor variables.
+
+  Includ all of the variables with high multicollinearity will result in increased standard errors and some of the variables may not end up being significant.
+The rule of thumb is that if VIF is 5 or larger we worry about it. The VIF of 4 in the standard error for the confidence interval around the coefficient will be twice as big as they would be otherwise. If we have VIF bigger than 10 then we have to do something about it.
+
+```{r echo=FALSE}
+
+
+kable(vif(lm(price ~.,data=car_data_num)),col.names ="VIF", caption = "VIF for  numerical covariates")
+```
+
+ 
+  VIF for numerical covariates is shown in *Table 6*. In our analysis, we decided to remove the variables with VIF above 10. We removed *citympg* with VIF equals 26.6 and then checked VIF after removing the variable. We removed *curbweight* with VIF 16.1 and checked VIF again. 
+
+
+```{r,echo=FALSE,include=FALSE}
+vif(lm(price ~.,data=car_data_num))
+#lm(log(price) ~.,data=car_data_num)$coef
+```
+
+```{r,echo=FALSE,include=FALSE}
+#We removed citypmg
+model1<-lm(price ~ wheelbase + carlength + carwidth + carheight + curbweight + 
+             enginesize + boreratio + stroke + compressionratio+ horsepower + 
+             peakrpm  + highwaympg, data = car_data_num)
+vif(model1)
+```
+
+```{r,echo=FALSE,include=FALSE}
+# We removed curbweight 
+model2<-lm(price ~ wheelbase + carlength + carwidth + carheight  + 
+             enginesize + boreratio + stroke + compressionratio + horsepower + 
+             peakrpm  + highwaympg,data = car_data_num)
+vif(model2)
+
+```
+
+
+
+## Choosing a Model
+### Stepwise Backward selection by using BIC
+
+```{r,echo=FALSE,include=FALSE}
+model5<-lm(log(price) ~ wheelbase  + carlength+carwidth + carheight  + log(horsepower)+
+             log(enginesize) + boreratio + stroke + log(compressionratio) + 
+             peakrpm  + highwaympg+fueltype+carbody+enginetype,data = car_data)
+
+```
+
+
+After VIF checking between numerical variables, we added some categorical variables to our model. We continued with the model below:
+
+
+
+$log(price) \sim  wheelbase  + carwidth + carheight  + 
+             log(enginesize) + boreratio + stroke + log(compressionratio) + 
+             peakrpm  + highwaympg+fueltype+carbody+enginetype+cylindernumber$
+           
+             
+After choosing the full model, we implemented different selection methods to choose the best model for prediction. We started by using the stepwise backward selection method based on the Bayesian information criterion (BIC). As a result, step function removed *carlength*, *wheelbase*, *carheight*, *log(compressionratio)*, *peakrpm*, *highwaympg*.
+
+```{r,  echo=FALSE, include=FALSE}
+n<-length(car_data[,1])
+step_model<-step(model5,k = log(n),trace = F)
+
+```
+
+### Using Traning and Test data 
+
+We split our dataset to 80% (Training set) and 20% (Testing set). We used regsubsets() for selecting  
+best subset, which quantifies best model using the residual sum of squares (RSS).
+
+```{r echo=FALSE, include=FALSE}
+##Train and test model based on model5
+
+model8<-lm(log(price) ~ wheelbase  + carlength+carwidth + carheight  + log(horsepower)+
+             log(enginesize) + boreratio + stroke + log(compressionratio) + 
+             peakrpm  + highwaympg+fueltype+carbody+enginetype,x=T,data = car_data)
+X <- model8$x 
+X <- X[,-c(1)]
+
+
+set.seed(123)
+frac <- 0.8 
+trainindeces <- sample(seq(1,dim(X)[1]),round(dim(X)[1]*frac))
+xx <- as.matrix(X[trainindeces,])
+yy <- log(car_data$price)[trainindeces]
+xxt <- as.matrix(X[-trainindeces,])
+yyt <- log(car_data$price)[-trainindeces]
+```
+
+
+
+
+```{r  echo=FALSE,include=FALSE, message=FALSE, warning=FALSE}
+m<-regsubsets(xx,yy,int=T,nbest=1000, nvmax=dim(X)[2],really.big = T,force.in=c(12:22))
+cleaps<-summary(m,matrix=T)
+tt<-apply(cleaps$which,1,sum) 
+tmin<-min(tt)
+tmax<-max(tt)
+tsec<-seq(tmin,tmax)
+cleaps$which
+```
+
+
+
+
+
+
+```{r echo=FALSE,include=FALSE, message=FALSE, warning=FALSE}
+col.order <- c(colnames(cleaps$which))
+xx <- xx[,col.order[-1]]   # now the order of columns in xx is consistent with the order in cleaps$which
+xxt <- xxt[,col.order[-1]] # now the order of columns in xxt is consistent with the order in cleaps$which
+
+
+mses<-cleaps$rss/length(yy) ## corresponding MSEs
+
+
+msevec<-rep(0,length(tsec))
+for (tk in 1:length(tsec)) {
+  msevec[tk]<-min(mses[tt==tsec[tk]])} ## the best model for each size
+```
+
+
+
+```{r, fig.width=10,fig.height=10, echo=FALSE, message=FALSE, warning=FALSE,fig.cap=" MSE and pMSE curves ",fig.height=8}
+pmses<-rep(0,dim(cleaps$which)[1])
+for (jj in (1:dim(cleaps$which)[1])) {
+  # here we fit training data
+  mmr<-lm(yy~xx[,cleaps$which[jj,-1]==T])
+  # (i) obtain the design matrix for the given model
+  # by selecting "active variables" in TEST data
+  design <- xxt[,cleaps$which[jj,-1]==T]
+  # (ii) add a column of ones for the intercept
+  design <- cbind(rep(1,dim(xxt)[1]),design)
+  PEcp<-sum((yyt-design%*%mmr$coef)^2)/length(yyt)
+  # the above is the pMSE for the current model.
+  # let's store it in a vector
+  pmses[jj]<-PEcp
+}
+pmsevec<-rep(0,length(tsec))
+for (tk in 1:length(tsec)) {
+  pmsevec[tk]<-min(pmses[tt==tsec[tk]])}
+
+par(mfrow=c(2,1))
+plot(tsec,msevec,xlab="number of parameters",ylab="MSE",main="MSE for best model of each size",type='b',col=4,lwd=2)
+plot(tsec,pmsevec,xlab="number of parameters",ylab="pMSE",main="prediction MSE for best model of each size", type="b",lwd=2,col=2)
+
+```
+ 
+
+  We fitted all models to the training data and collected the mean squared error- MSE for these models fits. Next, we applied the fitted models to testing data to check the model ability to predict, and collected the predicted mean squared error- pMSE for these models fits. *Figure 17* shows the MSE curve and pMSE curve for the best model of each size. 
+ 
+ In our case, the model with 17 parameters (with factors) gives the smallest pMSE where pMSE equals 0.02684. But we decided to choose a model with 16 parameters (with factors) pMSE equals 0.02688. There is no big difference between model pMSES with 17 and 16 parameters. The model we chose based on pMSE:
+ 
+ $log(price) \sim fueltype + carbody + enginetype + log(horsepower)+log(enginesize) +boreratio+stroke$
+ 
+ 
+
+### Cross-validation and LOOCV 
+
+
+To test how good our model that we chose using prediction error, we performed a cross-validation and LOOCV methods to validate the model from previous tests. We performed the CV and LOOCV using 10 folds. After cross-validation we got the same model as pMSE model. But LOOCV removed  *boreratio*  and  *stroke*  from our model.
+
+
+```{r echo=FALSE, include=FALSE}
+ptmin1<-sort(pmses)[2] # with 16 variables
+min1<-match(c(ptmin1),pmses)
+pmses[min1]
+cleaps$which[min1,]
+
+model_pmse<-lm(log(price) ~ fueltype + carbody + enginetype + log(horsepower)+log(enginesize) +boreratio+stroke  ,x=T,data = car_data)
+```
+
+
+```{r echo=FALSE, include=FALSE, warning=FALSE}
+
+
+model_pmse<-lm(log(price) ~ fueltype + carbody + enginetype + log(horsepower)+log(enginesize) +boreratio+stroke  ,x=T,data = car_data) 
+X1<-model_pmse$x
+X1 <- X1[,-c(1)]
+n <- 205
+yy_cv <- log(car_data$price)
+xx_cv <- as.matrix(X1)
+```
+
+```{r message=FALSE,warning=FALSE,echo=FALSE, include=FALSE}
+rleaps <- regsubsets(xx_cv, yy_cv, int = T, nbest = 4, nvmax = dim(X1)[2], really.big = T, method=c("ex"),force.in=c(1:12)) ## all subset models
+CVcleaps <- summary(rleaps, matrix = T) 
+Models = CVcleaps$which
+
+K <- 10
+ii <- sample(seq(1, length(yy_cv)), length(yy_cv))
+foldsize <- floor(length(yy_cv) / K)
+sizefold <- rep(foldsize, K)
+restdata <- length(yy_cv) - K*foldsize
+if (restdata > 0) {
+  sizefold[1:restdata] <- sizefold[1:restdata] + 1}
+
+
+
+Prederrors <- matrix(0,dim(Models)[1],K)
+iused <- 0
+Xmat <- cbind(rep(1,n), xx_cv)
+for (k in (1:K)) {
+  itest <- ii[(iused + 1):(iused + sizefold[k])]
+  itrain <- ii[-c((iused + 1):(iused + sizefold[k]))]
+  iused <- iused + length(itest)
+  Prederrors[1,k] <- sum((yy_cv[itest] - mean(yy_cv[itrain]))^2)
+  for (mm in (2:dim(Models)[1])) {
+    xi <- Xmat[itrain, Models[mm,]]
+    xi <- xi[,-1]
+    yi <- yy_cv[itrain]
+    lin.mod <- lm(yi ~ xi)
+    xi <- Xmat[itest, Models[mm,]]
+    xi <- xi[,-1]
+    yhat <- predict(lin.mod, as.data.frame(xi))
+    Prederrors[mm,k] <- sum((yy_cv[itest] - yhat)^2)    
+  }
+}
+PE <- apply(Prederrors,1,sum)/n  # final prediction errors
+
+```
+
+
+
+```{r echo=FALSE, include=FALSE}
+winmod <- Models[which.min(PE),]
+print(winmod)
+min(PE) #same model with PMSE
+model_cv<-lm(log(price) ~ fueltype + carbody + enginetype + log(horsepower)+log(enginesize) +boreratio+stroke  ,x=T,data = car_data)
+
+```
+
+
+```{r echo=FALSE, include=FALSE}
+
+PE_LOOCV<-rep(0,dim(Models)[1])
+PEwrong<-rep(0,dim(Models)[1])
+for (mm in (1:dim(Models)[1])) {
+     modfit<-lm(yy_cv~Xmat[,Models[mm,]]-1)
+     PE_LOOCV[mm] <- (sum(resid(modfit)^2/(1-hatvalues(modfit))^2))/length(yy_cv)}
+```
+
+
+```{r echo=FALSE, include=FALSE}
+winmod <- Models[which.min(PE_LOOCV),]
+print(winmod)
+```
+```{r echo=FALSE, include=FALSE}
+model_loocv<-lm(log(price) ~ fueltype + carbody + enginetype + log(horsepower)+log(enginesize)  ,x=T,data = car_data)
+
+```
+
+
+
+We ended up with 4 different models:
+
+* Model after stepwise bacward selection-  step_model: $log(price) \sim carwidth + log(horsepower) + log(enginesize) + boreratio + stroke + fueltype + carbody + enginetype$
+
+* Model after using prediction error pMSE-  pmse_model: $log(price) \sim fueltype + carbody + enginetype + log(horsepower)+log(enginesize) +boreratio+stroke$ 
+
+* Model after CV is the same with the  pMSE model. 
+
+* Model after LOOCV-  loocv_model: $log(price) \sim fueltype + carbody + enginetype + log(horsepower)+log(enginesize)$
+
+Because our models are nested, we tried ANOVA test to decide which one will be using as the final model.
+
+```{r echo=FALSE}
+kable(anova(model_loocv, model_pmse), caption = "Comparing loocv_model and pmse_model  " )
+```
+
+
+
+The ANOVA test has a hypothesis:
+
+* Null hypothesis: there is no significant difference between RSS for the full (pmse_model) and reduced (loocv_model) models
+* Alternative hypothesis: The full model (pmse_model) has lower RSS (better) than the reduced model (loocv_model)
+
+
+  From *Table 7* we can see that RSS for the full (pmse_model) has better RSS compared to reduced model (loocv_model), also based on the p-value of the test = 2.19e-08 (almost zero), we reject the null hypothesis, we believe that pmse_model is better than loocv_model.
+We rejected LOOCV model and continued with two models. They are nested; we can do the ANOVA test again.
+
+
+```{r echo=FALSE}
+kable(anova( model_pmse,step_model),caption = "Comparing step_model and pmse_model" )
+
+```
+
+
+From *Table 8* we can see that RSS for the full (step_model) is better than the RSS for the reduced model (pmse_model), also based on the p-value of the test = 1.5e-06 (almost zero), we reject the null hypothesis, we believe that step_model is better than pmse_model.
+
+We chose our final model, which is the same as the step_model. 
+
+Final model: $log(price) \sim carwidth + log(horsepower) + log(enginesize) + boreratio + stroke + fueltype + carbody + enginetype$
+
+
+```{r echo=FALSE, include=FALSE}
+#Our Model
+
+model<-lm( log(price) ~ carwidth + log(horsepower) + log(enginesize) + 
+    boreratio + stroke + fueltype + carbody + enginetype, data = car_data) 
+summary(model)
+```
+
+
+
+
+
+
+
+
+
+## Identifying Outliers
+
+
+
+```{r ,warning=FALSE,echo=FALSE , fig.cap=" Diagnostic plots for final model" ,fig.height=5}
+#car_data <- car_data[-c(129,17,31,50,102,103,130,19,104,135,67,128,127), ]
+par(mfrow=c(2,2))
+plot(model)
+```
+
+
+From *Figure 18* we can see that:
+
+* The residual vs fitted plot shows that the linearity assumption is not quite met cause the line is not fairly flat and there is some pattern (curve-nonlinear)
+
+* The Q-Q plot shows that points below and above do not follow the normal line and that is the errors/residuals are not normally distributed
+
+* The scale-location plot shows that the variance varies with the fitted values (the curve is not flat)
+
+* The residuals vs leverage plot show some extremes, there are 3 extremes in this model.
+
+
+```{r warning=FALSE, echo=FALSE, fig.cap="Cook's distance for chosen model",fig.height=4}
+# cook's distance for chosen model
+
+cds <- cooks.distance(model)
+
+plot(model, pch=18, col='red', which=c(4),sub="")
+
+```
+
+
+Cook's distance  (*Figure 19*) plot shows that we have 3 points with high cook's distance: 19, 50, 135.  After gathering all points from top residuals, influence points  and standardized residuals, we picked out most frequency observations and extract these data points:  *19, 50, 67, 128, 168, 169, 135*. 
+After removing the outliers we checked the Diagnostic plots and saw that we have better fitting. 
+
+```{r  warning=FALSE, echo=FALSE, include=FALSE}
+
+#top Cooks distance
+cd <- which(rownames(car_data) %in% names(sort(cooks.distance(model), decreasing = T)[1:10]))
+cd
+```
+```{r  warning=FALSE, echo=FALSE, include=FALSE}
+resd <- which(rownames(car_data) %in% names(sort(abs(residuals(model)), decreasing = T)[1:10]))
+resd
+```
+```{r  warning=FALSE, echo=FALSE, include=FALSE}
+inf <- which(rownames(car_data) %in% names(sort(lm.influence(model, do.coef = FALSE)$hat, decreasing = T)[1:10]))
+inf
+```
+```{r  warning=FALSE, echo=FALSE, include=FALSE}
+srsd <- which(rownames(car_data) %in% names(sort(abs(rstandard(model)), decreasing = T)[1:10]))
+srsd
+```
+
+```{r  warning=FALSE, echo=FALSE, include=FALSE}
+#gather all points from above
+indvec <- c(resd, inf, cd, srsd)
+#count the frequesncy of each of these points
+table(indvec)
+```
+```{r  warning=FALSE, echo=FALSE, include=FALSE}
+#pick out most frequency observations: 
+indout1 <- table(indvec)[which(table(indvec) == 3)]
+indout2 <- table(indvec)[which(table(indvec) == 2)]
+indout <- c(indout1, indout2)
+indout
+```
+
+```{r  warning=FALSE, echo=FALSE, include=FALSE}
+#Removing most extreme outliers
+car_data <- car_data[-c(19 , 50 , 67, 128 ,168 ,169,135 ), ]
+
+```
+
+```{r  warning=FALSE, echo=FALSE, include=FALSE}
+model<-lm( log(price) ~ carwidth + log(horsepower) + log(enginesize) + 
+    boreratio + stroke + fueltype + carbody + enginetype, data = car_data) 
+
+```
+```{r, echo=FALSE, include=FALSE}
+par(mfrow=c(2,2))
+plot(model)
+```
+
+## Model Intrepretation
+
+```{r echo=FALSE}
+kable(prettify(summary(model)), caption = " Summary for model parameters")
+```
+
+
+
+From *Table 9* we can say:
+
+
+* When enginesize increases by 1%, the car price increases by 1.04% (holding all other variables constant).
+
+* When horsepower increases by 1%, the car price increases by 0.7% (holding all other variables constant).
+
+* Car width is associated with an increase of 5% in the car price per 1 inch increases in the width.
+
+* A car with a sedan body is estimated to have 0.2 less price per $1 than a convertible body (baseline level) holding all other variables constant.
+
+The engine types *dohcv* ,*ohc* ,*ohcv* and  *rotor* are statistically significant, while *ohcf* and *l* are not significant. The difference between the baseline level (*dohc*) and the enginetype *l* average price is not statistically significant, which means that there is not enough evidence to show that there is a difference in average prices between the *dohc* enginetype and enginetype *l* assuming all other variables are constant.
+
+## Summary for Car price prediction
+
+```{r echo=FALSE, fig.cap =" Observed prices vs predicted prices with confidence and prediction intervals" , fig.height=4}
+# plot y vs yhat
+#fit all data with final model
+yhat <- predict(model, newdata = car_data)
+#Confidence and prediction intervals
+conf <- predict(model, newdata = car_data, interval = 'confidence')
+pred <- predict(model, newdata = car_data, interval = 'prediction')
+conf <- as.data.frame(conf)
+pred <- as.data.frame(pred)
+
+
+# Regression line and confidence intervals
+colors <- c("Confidence interval" = "forestgreen", "Prediction interval" = "red")
+q <- ggplot(car_data, aes(log(yhat), log(car_data$price))) +
+   stat_smooth(method = lm, col='skyblue') + geom_point(col='black') 
+# Add prediction and confidence intervals
+q + geom_line(aes(y = pred$lwr, color = "Prediction interval") ,linetype = "twodash")+
+    geom_line(aes(y = pred$upr ,color = "Prediction interval"), linetype = "twodash") + geom_line(aes(y = conf$lwr, color = "Confidence interval"), linetype = "longdash")+
+    geom_line(aes(y = conf$upr, color = "Confidence interval"), linetype = "longdash") +
+   theme(plot.caption = element_text(hjust = 0))+
+  scale_color_manual(values = colors)
+  
+  
+
+```
+ 
+ 
+ *Figure 20 * shows that most of the observations lie inside the prediction interval and close confidence interval, which means that our model is good and the prediction interval covered the values.
+ 
+```{r  echo=FALSE, message=FALSE, warning=FALSE}
+summ_model <- data.frame( "Residual standard error" = sigma(model), "R-squared" = 0.925,"Adjusted R-squared" =0.9183 )
+kable(summ_model, caption="Summary for model")
+```
+
+
+
+## Conclusion
+
+R-sqaured of the final model = 0.925 and the Adjusted R-squared =0.9183, which means that our model explaines about 92% of variability in the prices. Therefore, our model is good to predict the prices with the chosen predictor variables *Table 10* 
+
+
+```{r,include=FALSE,echo=FALSE}
+nile_data<-read.csv("nile.csv")
+nile_data<-nile_data[3:10]
+nile_data$equine_rate<-nile_data$equine_cases/nile_data$farms
+na.omit(nile_data)
+```
+
+
+## Part 2
+
+### Introduction
+ This part explores a dataset contains 46 county with 9 different variables (bird cases, equine cases, human density, ...) for each county. This analysis tries to predict the rate of West Nile Virus (WNV) positive equine in a county.
+
+We modeled the equine cases with independent variables that we think are highly correlated with this variable, and tried to show how equine cases vary with these independent variables.
+
+
+## Data Preparation
+In the dataset, the covariates are non-negative integers. We checked data for missing values and created a new variable from our data *equine_rate*:
+
+$$equine\_rate = \frac{equine\_case}{farms}
+$$
+
+## Exploring the Data
+
+ To check the correlation between the variables, we used the correlation plot and it showed that there is a strong association between *popul* and *human_dens* (0.96) because of the collinearity between them. The bird_cases has the strongest relationship with equine_cases among other variables. We compared the effect of *bird_cases*, *human_dens* to choose the best model for prediction.
+ 
+ 
+```{r , include=FALSE,echo=FALSE}
+plot_correlation(nile_data)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,include=FALSE}
+#check types of data
+str(nile_data)
+```
+
+## Poisson Model
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+g0 <- glm(equine_cases ~ bird_cases, family="poisson", x=T ,offset = log(farms), data=nile_data)
+
+kable(prettify(summary(g0)), caption = "Summary for model parameters")
+```
+
+
+
+
+From *Table 11*, when bird_cases increases by 1, the equine_cases relatively increases by 1.04 that is a 4% increase (exp(beta1)=exp(0.04)=1.04). This result obtained without any other information from other covariates. Equine_cases may expect to increase according to areas with greater human population densities, because this will increase the probability of people finding dead birds. In addition, more bird cases may result in more human cases.
+
+Estimate of overdispersion: Residual Deviance/ Residual df = 76.968/44 = 1.75
+```{r echo=FALSE, include=FALSE}
+dispersiontest(g0,alternative="two.sided")
+```
+
+Using dispersiontest() we had a p-value that is not significant (0.06 > 0.05), which means we fail to reject the null hypothesis: mean = variance.
+The dispersion = 1.9 > 1, this result indicates that we have an overdispersion! 
+Next we check the effect of adding the *human_dens* to our model.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#update the model by adding human density
+g1 <- glm(equine_cases ~ bird_cases + human_dens, family="poisson",x=T, offset = log(farms),data = nile_data)
+kable(prettify(summary(g1)),caption = "Summary for model parameters" )
+
+```
+
+
+
+From *Table 12*  we can say that for a fixed bird cases, a unit increase in the human density predicts a 1% decrease in the number of equine cases. (exp(-0.002) = 0.996) --> about 1)
+When human density increases by 1000 (holding bird cases fixed), we would expect a decrease of equine cases equal to exp(1000*0.01) = 10.
+Residual deviance is larger than the degrees of freedom, which means that we have overdispersion.
+
+#### Do we need to add human density when bird cases is in the model?
+
+#### Likelihood ratio test between the two models
+
+```{r, echo=FALSE }
+kable(anova(g0,g1), caption = "Anova test ")
+```
+
+
+```{r echo=FALSE, include=FALSE }
+#a chi-squared with 1 df
+qchisq(0.95,1)
+```
+
+Difference between deviances is 1.66 (*Table 13* ), which is smaller than 3.84 (Chi-Squared distribution with 1 degrees of freedom), we failed to reject the null hypothesis=reduced model. We do not need the extra info provided by the human density.
+
+```{r echo=FALSE, include=FALSE}
+#formal test for dispersion
+dispersiontest(g1,alternative="two.sided")
+```
+
+
+The p-value is significant (0.02 < 0.05), which means we reject the null hypothesis: mean = variance.
+The dispersion = 1.8 > 1, this results indicates that we have an overdispersion! In this case, it is better to use negative binomial.
+
+
+We plotted predicted rate of WNV-positive equine against observed rate of WNV-positive equine for our Poisson model. We also plotted y=x line to check whether observed and predicted rates are similar or not.
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Observed and Predicted rates (Poisson model)"}
+# plot WVN rate vs predicted rate
+# coefficients when using the offset term
+beta <- g0$coefficients 
+# extract the design matrix from g0,"x=T" in glm
+dm <- g0$x   
+pred_rate=exp(dm%*%beta) # predicted rates
+plot(nile_data$equine_rate,pred_rate,ylab="Estimated rates",xlab="Observed rates")
+abline(0,1, col='red') 
+```
+
+
+Using slope = 1 shows that observed and predicted rates are not similar (*Figure 21*)
+
+
+
+## Negative Binomial Model
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+#using negative binomial
+
+ng <- glm.nb(equine_cases ~ bird_cases + offset(log(farms)), data=nile_data, x=T)
+kable(prettify(summary(ng)),caption = "Summary for Negative Binomial parameters ")
+```
+ 
+
+
+From *Table 14*, when bird_cases increases by 1, the equine_cases relatively increases by 1.07 that is 7% increase (exp(0.07) = 1.07)
+
+```{r include=FALSE,echo=FALSE}
+#p value given chi squared and degrees of freedom
+pchisq(ng$deviance, ng$df.residual, lower.tail=F)
+```
+```{r include=FALSE,echo=FALSE}
+c("1-P(X2>Dev)=", 1-pchisq(ng$dev, df=summary(ng)$df[2]))
+```
+
+Using the Chi-Square goodness of fit test on the residuals deviance, does not reject the negative binomial fit, which means the negative binomial model is better.
+
+We plotted predicted rate of WNV-positive equine using Negative Binomial model against the actual rate of WNV-positive equine with y=x line to check whether actual and predicted rates are similar or not.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE ,fig.cap="Observed and Predicted rates (Negative Binomial model)"}
+# plot WVN rate vs predicted rate
+# coefficients when using the offset term
+beta1 <- ng$coefficients 
+# extract the design matrix from gg,"x=T" in glm
+dm1 <- ng$x   
+pred_rate1=exp(dm1%*%beta1) # predicted rates
+plot(nile_data$equine_rate,pred_rate1,ylab="Estimated rates",xlab="Observed rates", main ="Observed and Predicted rates (Negative Binomial model)")
+abline(0,1, col='red') 
+```
+
+ 
+From the graph above, we can see that Negative Binomial model is better and the line is closer to data points comparing to Poisson model (*Figure 22*).
+ 
+ 
+## Comparison of Negative Binomial model and Poisson model
+
+Comparing the Negative Binomial model and Poisson model using likelihood ratio test to check the difference between deviances of Negative Binomial model and Poisson model. We calculated 1 degree of freedom (Poisson and NB differ by exactly 1 parameter (Theta)) for the chi-squared distribution (3.84), and compared the result with the difference between deviances (-2*(logLik(g0)[1]-logLik(ng)[1]) = 11). The difference between deviances is larger than chi-squared distribution result and so we reject the Poisson model at 0.05 significance level.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Confidence interval for Poisson and Negative Binomial models "}
+nile_data$pred_NB <- pred_rate1
+nile_data$pred_poisson <- pred_rate
+
+# Regression line and confidence intervals
+
+q<-ggplot(nile_data, aes(equine_rate, pred_NB)) +
+   stat_smooth(method = glm, col='skyblue') + geom_point(col='forestgreen')
+p<-ggplot(nile_data, aes(equine_rate, pred_poisson)) +
+   stat_smooth(method = glm, col='skyblue') + geom_point(col='forestgreen')
+ggarrange(q, p, ncol = 2, nrow = 1)
+```
+
+
+The confidence intervals for both Poisson model and negative binomial model show that the negative binomial model has more capacity and covers more data points (*Figure 23*)
+
+```{r include=FALSE,echo=FALSE}
+qchisq(1-0.05,1)
+```
+
+```{r,include=FALSE,echo=FALSE}
+-2*(logLik(g0)[1]-logLik(ng)[1])
+```
+
+## Formal test (lrtest)
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,include=FALSE}
+library(lmtest)
+lrtest(g1,ng)
+```
+
+
+Likelihood ratio test is larger than likelihood ratio test critical and so, we reject null hypothesis (Poisson model is better than Negative binomial model). We can say Negative binomial model is better than Poisson model.
+
+
+## Conclusion
+
+The WNV dataset has very small data points, which we think is not enough to use for prediction or having a good model that represents the true relationship between response and predictors. To have more accuracy we need more data to learn more about what affect the equine_cases and test the model for validation.
+
+We can see from graphs that we have some extreme values that affect the line. We decided not to remove any of these values. Removing some of them affected the results significantly, and we are not sure if these points are critical situations meaning they are an important evidence (like Horry county, which have 52 bird cases) for the situation, or it is just a mistake and so, we decided to keep all points and predict based on all data points.
