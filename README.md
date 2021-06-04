@@ -1,6 +1,6 @@
 
-## Master Program Projects and Assignments 
-### Some of my master degree projects and Assignments (MSc Applied Data Science)*
+## Projects and Assignments 
+### Some of my master degree projects and assignments (MSc Applied Data Science)*
 
 
 **Deep Machine learning project:**
