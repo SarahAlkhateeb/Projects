@@ -1,5 +1,5 @@
 
-## Masters Projects
+## Master Program Projects and Assignments 
 ### Some of my masters degree projects (MSc Applied Data Science)*
 
 
