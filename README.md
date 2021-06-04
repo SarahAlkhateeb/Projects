@@ -34,7 +34,7 @@ The final report included my final solution to three different Exercises:
 **Stochastic data processing and simulation:**
 *	Worked on several projects in different areas of mathematical statistics and its application such as finance and bioinformatics.
 * Each project contained a number of problems: Reliability and survival, Bayesian decision theory, Monte Carlo methods and Simulation of stochastic processes that was solved using Python, R and Matlab
-*The projects’ reports are written in LaTex
+* The projects’ reports are written in LaTex
 
 **Assignments:** A2.pdf + A2.m, A4.pdf + A4.R, A6.pdf + A6.ipynb
 
