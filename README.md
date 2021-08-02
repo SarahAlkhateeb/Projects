@@ -5,7 +5,7 @@
 
 **Deep Machine learning project:**
 
-We applied the You Only Look Once (YOLOv4) algorithm to weapons detection because YOLO approved to be the fastest so far and can be implemented in real-time detection. Automating weapons detection could be beneficial, especially if it were fast enough to send an alert in real-time. We focused on two categories of weapons: guns and knives. There are lots of images of guns and knives available online, and they are probably the most commonly used weapons, so they will be the most useful to detect.
+We applied the You Only Look Once (YOLOv4) algorithm on real-world challenges in the security field because YOLO approved to be the fastest so far and can be implemented in real-time detection. Automating security camera detection could be beneficial, especially if it were fast enough to send an alert in real-time.
 
 **Files:** 
 * Deep Machine Learning Project.pdf
